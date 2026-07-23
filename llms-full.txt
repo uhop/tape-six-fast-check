@@ -1,0 +1,128 @@
+# tape-six-fast-check — full reference
+
+> Property-based testing plugin for tape-six powered by fast-check. Registers two tester methods — `t.prop()` (properties) and `t.scheduler()` (race conditions) — each reporting one aggregate counted assertion with structured counterexample/seed/path data read from `fc.check()` run details (never parsed from text). ES modules only; no build step; no runtime dependencies. Peer dependencies: tape-six ^1.16.0 (`registerTesterMethod`, `Tester.reportAssertion`), fast-check ^4 (`RunDetails`).
+
+## Install
+
+npm install --save-dev tape-six-fast-check tape-six fast-check
+
+Both peers are supplied by the consumer; the plugin pins neither.
+
+## Registration model
+
+Importing the package is a side effect that installs both methods on tape-six's `Tester.prototype` via `registerTesterMethod`:
+
+```js
+import 'tape-six-fast-check';
+```
+
+Import it once in every test file that uses `t.prop` / `t.scheduler`. A name collision with a different implementation throws loudly at import time (tape-six's plugin rule). The module has no runtime exports.
+
+## await t.prop(arbitraries, predicate, options?, msg?)
+
+Runs `fc.check(fc.asyncProperty(...arbitraries, predicate))` and reports **one aggregate assertion** on the current test, regardless of how many cases fast-check executed. Returns the full `RunDetails` object from `fc.check()`.
+
+Parameters:
+
+- `arbitraries` — non-empty **array** of fast-check arbitraries, one per predicate argument. `TypeError` (rejected promise) on an empty or non-array value.
+- `predicate` — `(...values) => boolean | void | Promise<boolean | void>`. Sync or async; the plugin wraps it in `fc.asyncProperty`, so both work identically. **Contract: throw or return `false` to fail; any other outcome passes.** Do not call `t.*` assertions inside the predicate — it runs up to `numRuns` times and every inner assertion would re-report on each run. `TypeError` on a non-function.
+- `options` — `fc.check()` parameters passed through verbatim: `numRuns` (default 100), `seed`, `path`, `endOnFailure`, `interruptAfterTimeInMs`, `skipEqualValues`, `verbose`, `examples`, … The message may take this slot when no options are needed.
+- `msg` — assertion name; defaults to `'property holds'`.
+
+Reporting:
+
+- **Success:** `{ok: true, message, marker, operator: 'prop'}` — a lean counted pass.
+- **Failure:** additionally `expected: true` and `actual: {counterexample, seed, path, numRuns, numShrinks, error}` — all read from `RunDetails` (`counterexample`, `seed`, `counterexamplePath`, `numRuns`, `numShrinks`, `errorInstance`). No text parsing anywhere.
+- The assertion's source location points at the `t.prop()` call site (marker captured in the method's own frame; tape-six resolves `stackList[1]`).
+
+Example:
+
+```js
+import test from 'tape-six';
+import fc from 'fast-check';
+import 'tape-six-fast-check';
+
+test('JSON round-trips plain objects', async t => {
+  await t.prop(
+    [fc.dictionary(fc.string(), fc.jsonValue())],
+    o => JSON.stringify(JSON.parse(JSON.stringify(o))) === JSON.stringify(o),
+    {numRuns: 200},
+    'parse(stringify(o)) === o'
+  );
+});
+```
+
+Replay a failure exactly (values from the failed run's structured data):
+
+```js
+await t.prop([fc.array(fc.integer())], mySortIsStable, {
+  seed: -1651341797,
+  path: '25:3:1',
+  endOnFailure: true
+});
+```
+
+Using the returned details:
+
+```js
+const details = await t.prop([fc.nat()], n => n >= 0);
+// details.failed, details.numRuns, details.seed, details.counterexample, …
+```
+
+## await t.scheduler(body, options?, msg?)
+
+Race-condition sugar: runs `fc.check(fc.asyncProperty(fc.scheduler(act?), body))`. Same aggregate reporting (operator `'scheduler'`, default message `'scheduled property holds'`), same replay mechanics, same return value (`RunDetails<[Scheduler]>`).
+
+Parameters:
+
+- `body` — `(s: Scheduler) => boolean | void | Promise<boolean | void>`. Wrap promises with `s.schedule(promise)` or functions with `s.scheduleFunction(fn)`, then drain with `await s.waitAll()` (or `s.waitFor(promise)`); fast-check permutes the resolution order across runs to explore interleavings. Throw or return `false` to fail. `TypeError` on a non-function.
+- `options` — `fc.check()` parameters **plus** optional `act`, which is split out and forwarded to `fc.scheduler({act})` (React-style act wrappers). The message may take this slot.
+- `msg` — assertion name.
+
+Example — detecting an order-dependent bug:
+
+```js
+test('finds the interleaving bug', async t => {
+  const details = await t.scheduler(async s => {
+    let value = null;
+    s.schedule(Promise.resolve()).then(() => (value = 'first'));
+    s.schedule(Promise.resolve()).then(() => (value = 'second'));
+    await s.waitAll();
+    return value === 'second'; // holds only under one of the two interleavings
+  });
+  // under a fixed {seed} this is deterministic; the failure carries the seed for replay
+});
+```
+
+## TypeScript
+
+`index.d.ts` augments tape-six's `Tester` interface via `declare module 'tape-six'`, so both methods are typed after the side-effect import. Predicate argument types are inferred from the arbitraries tuple:
+
+```ts
+import type {RunDetails, Scheduler} from 'fast-check';
+
+const details: RunDetails<[number, string]> = await t.prop(
+  [fc.integer(), fc.string()],
+  (n, s) => typeof n === 'number' && s.length >= 0
+);
+```
+
+Exported helper types:
+
+- `ArbitraryTuple<Ts extends [unknown, ...unknown[]]>` — maps a value tuple to the matching arbitraries tuple.
+- `PropPredicate<Ts>` — `(...values: Ts) => boolean | void | Promise<boolean | void>`.
+- `SchedulerBody` — `(s: Scheduler) => boolean | void | Promise<boolean | void>`.
+- `SchedulerOptions` — `Parameters<[Scheduler]> & {act?: SchedulerAct}`.
+
+## Design constraints (for contributors)
+
+- One aggregate assertion per call; failure data is structured, never parsed from fast-check's report text (the tape-six family "events stay uniform" rule).
+- Marker (`new Error()`) is captured in each public method's own frame so the reported location is the user's call site.
+- No runtime dependencies; tape-six and fast-check remain peer dependencies.
+- v1 predicate contract is throw/return-`false`; a scoped sub-tester materializing only the shrunk failing run is a possible later refinement.
+
+## Links
+
+- README: https://github.com/uhop/tape-six-fast-check#readme
+- tape-six: https://github.com/uhop/tape-six
+- fast-check: https://fast-check.dev/

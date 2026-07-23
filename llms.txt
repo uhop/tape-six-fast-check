@@ -1,0 +1,52 @@
+# tape-six-fast-check
+
+> Property-based testing plugin for tape-six powered by fast-check. Registers two tester methods — `t.prop()` (properties) and `t.scheduler()` (race conditions) — each reporting one aggregate counted assertion with structured counterexample/seed/path data read from `fc.check()` run details (never parsed from text). Peer dependencies: tape-six ^1.16.0, fast-check ^4.
+
+## Install
+
+npm install --save-dev tape-six-fast-check tape-six fast-check
+
+## Quick start
+
+```js
+import test from 'tape-six';
+import fc from 'fast-check';
+import 'tape-six-fast-check'; // side-effect import registers t.prop / t.scheduler
+
+test('addition is commutative', async t => {
+  await t.prop([fc.integer(), fc.integer()], (a, b) => a + b === b + a, 'a + b === b + a');
+});
+```
+
+## API
+
+### await t.prop(arbitraries, predicate, options?, msg?)
+
+Runs `fc.check()` over the property and reports one aggregate assertion on the current test. Returns the fast-check `RunDetails`.
+
+- `arbitraries` — non-empty array of fast-check arbitraries, one per predicate argument.
+- `predicate` — `(...values) => boolean | void | Promise<boolean | void>`; **throw or return `false` to fail**, anything else passes; sync or async. Do not call `t.*` assertions inside — the predicate runs up to `numRuns` times.
+- `options` — `fc.check()` parameters (`numRuns`, `seed`, `path`, `endOnFailure`, …). The message may take this slot: `t.prop(arbs, predicate, 'name')`.
+- `msg` — assertion name; defaults to `'property holds'`.
+
+On failure the assertion's `actual` carries `{counterexample, seed, path, numRuns, numShrinks, error}`. Replay: pass `{seed, path, endOnFailure: true}` in `options`.
+
+Invalid arguments (empty/non-array arbitraries, non-function predicate) reject with `TypeError`.
+
+### await t.scheduler(body, options?, msg?)
+
+Race-condition sugar over `fc.asyncProperty(fc.scheduler(), body)`; same reporting and replay mechanics.
+
+- `body` — `(s: Scheduler) => boolean | void | Promise<boolean | void>`; wrap promises with `s.schedule(...)` / `s.scheduleFunction(...)`, drain with `await s.waitAll()`; throw or return `false` to fail.
+- `options` — `fc.check()` parameters plus optional `act`, forwarded to `fc.scheduler({act})`.
+- `msg` — assertion name; defaults to `'scheduled property holds'`.
+
+## TypeScript
+
+`index.d.ts` augments tape-six's `Tester` interface (`declare module 'tape-six'`), so both methods are typed after the side-effect import; predicate argument types are inferred from the arbitraries tuple. Exported helper types: `ArbitraryTuple<Ts>`, `PropPredicate<Ts>`, `SchedulerBody`, `SchedulerOptions`.
+
+## Notes
+
+- ES modules only; no build step; no runtime dependencies (both integrations are peers).
+- Always `await` the calls — the assertion reports when the run completes.
+- Docs: https://github.com/uhop/tape-six-fast-check#readme

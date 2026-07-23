@@ -1,0 +1,82 @@
+{
+  "name": "tape-six-fast-check",
+  "version": "1.0.0",
+  "description": "Property-based testing plugin for tape-six powered by fast-check: t.prop() and t.scheduler() tester methods with structured counterexamples, seeds, and replay.",
+  "type": "module",
+  "main": "index.js",
+  "module": "index.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": "./index.js"
+  },
+  "scripts": {
+    "lint": "prettier --check .",
+    "lint:fix": "prettier --write .",
+    "test": "tape6 --flags FO",
+    "test:bun": "tape6-bun --flags FO",
+    "test:deno": "tape6-deno --flags FO",
+    "ts-test": "tape6 --flags FO 'tests/test-*.ts'",
+    "ts-test:bun": "tape6-bun --flags FO 'tests/test-*.ts'",
+    "ts-test:deno": "tape6-deno --flags FO 'tests/test-*.ts'",
+    "ts-check": "tsc --noEmit",
+    "js-check": "tsc --project tsconfig.check.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/uhop/tape-six-fast-check.git"
+  },
+  "keywords": [
+    "tape6",
+    "tape-six",
+    "fast-check",
+    "property-based-testing",
+    "pbt",
+    "quickcheck",
+    "property",
+    "arbitrary",
+    "counterexample",
+    "shrinking",
+    "race-condition",
+    "scheduler",
+    "test",
+    "testing",
+    "unit-test",
+    "cross-runtime",
+    "nodejs",
+    "deno",
+    "bun",
+    "browser",
+    "esm",
+    "es-modules",
+    "typescript"
+  ],
+  "author": "Eugene Lazutkin <eugene.lazutkin@gmail.com> (https://www.lazutkin.com/)",
+  "funding": "https://github.com/sponsors/uhop",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/uhop/tape-six-fast-check/issues"
+  },
+  "homepage": "https://github.com/uhop/tape-six-fast-check#readme",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "llms.txt",
+    "llms-full.txt"
+  ],
+  "tape6": {
+    "tests": [
+      "/tests/test-*.js"
+    ]
+  },
+  "peerDependencies": {
+    "fast-check": "^4.0.0",
+    "tape-six": "^1.16.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "fast-check": "^4.9.0",
+    "prettier": "^3.9.6",
+    "tape-six": "^1.16.1",
+    "typescript": "^7.0.2"
+  }
+}
