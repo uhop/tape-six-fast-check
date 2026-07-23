@@ -109,6 +109,36 @@ await t.prop([fc.integer(), fc.string()], (n, s) => typeof n === 'number' && s.l
 
 Exported helper types: `ArbitraryTuple`, `PropPredicate`, `SchedulerBody`, `SchedulerOptions`.
 
+## In the browser
+
+tape-six runs browser tests off plain ES modules and an import map served by `tape6-server` — the setup is documented in the tape-six wiki: [Set-up tests](https://github.com/uhop/tape-six/wiki/Set-up-tests) and [Environment ‐ Browsers](https://github.com/uhop/tape-six/wiki/Environment-‐-Browsers). To use `t.prop()` / `t.scheduler()` there, extend that import map with this package, `fast-check`, and the `pure-rand` subpaths fast-check imports:
+
+```html
+<script type="importmap">
+  {
+    "imports": {
+      "tape-six": "/node_modules/tape-six/index.js",
+      "tape-six/": "/node_modules/tape-six/src/",
+      "tape-six-fast-check": "/node_modules/tape-six-fast-check/index.js",
+      "fast-check": "/node_modules/fast-check/lib/fast-check.js",
+      "pure-rand/distribution/uniformBigInt": "/node_modules/pure-rand/lib/esm/distribution/uniformBigInt.js",
+      "pure-rand/distribution/uniformInt": "/node_modules/pure-rand/lib/esm/distribution/uniformInt.js",
+      "pure-rand/generator/congruential32": "/node_modules/pure-rand/lib/esm/generator/congruential32.js",
+      "pure-rand/generator/mersenne": "/node_modules/pure-rand/lib/esm/generator/mersenne.js",
+      "pure-rand/generator/xoroshiro128plus": "/node_modules/pure-rand/lib/esm/generator/xoroshiro128plus.js",
+      "pure-rand/generator/xorshift128plus": "/node_modules/pure-rand/lib/esm/generator/xorshift128plus.js",
+      "pure-rand/utils/skipN": "/node_modules/pure-rand/lib/esm/utils/skipN.js"
+    }
+  }
+</script>
+```
+
+The `pure-rand` entries are needed because import maps don't apply a package's `exports` table: fast-check imports extensionless subpaths (`pure-rand/utils/skipN`), so each one is mapped to its `.js` file explicitly. The list mirrors fast-check 4.9.0 — re-check it after a major fast-check bump. Alternatively, a single CDN entry replaces the `fast-check` _and_ `pure-rand` lines — the CDN resolves the dependency itself:
+
+```json
+"fast-check": "https://cdn.jsdelivr.net/npm/fast-check@4/+esm"
+```
+
 ## Release notes
 
 - 1.0.0 — Initial release: `t.prop()`, `t.scheduler()`, TypeScript augmentation of `Tester`.

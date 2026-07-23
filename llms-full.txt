@@ -121,6 +121,16 @@ Exported helper types:
 - No runtime dependencies; tape-six and fast-check remain peer dependencies.
 - v1 predicate contract is throw/return-`false`; a scoped sub-tester materializing only the shrunk failing run is a possible later refinement.
 
+## Browser usage
+
+tape-six's browser testing serves plain ES modules with an import map (`tape6-server`; see the tape-six wiki pages "Set-up tests" and "Environment ‐ Browsers"). Extend that map for this plugin:
+
+- `"tape-six-fast-check": "/node_modules/tape-six-fast-check/index.js"`
+- `"fast-check": "/node_modules/fast-check/lib/fast-check.js"`
+- the seven `pure-rand` subpaths fast-check imports, each mapped to its `.js` file under `/node_modules/pure-rand/lib/esm/` (`distribution/uniformBigInt`, `distribution/uniformInt`, `generator/congruential32`, `generator/mersenne`, `generator/xoroshiro128plus`, `generator/xorshift128plus`, `utils/skipN`) — import maps don't apply a package's `exports` table, and the subpath list mirrors fast-check 4.9.0.
+
+Alternatively one CDN entry replaces the fast-check and pure-rand lines: `"fast-check": "https://cdn.jsdelivr.net/npm/fast-check@4/+esm"`. The complete map is in README § In the browser.
+
 ## Links
 
 - README: https://github.com/uhop/tape-six-fast-check#readme

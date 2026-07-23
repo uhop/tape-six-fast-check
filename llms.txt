@@ -49,4 +49,5 @@ Race-condition sugar over `fc.asyncProperty(fc.scheduler(), body)`; same reporti
 
 - ES modules only; no build step; no runtime dependencies (both integrations are peers).
 - Always `await` the calls — the assertion reports when the run completes.
+- Browser: use tape-six's import-map setup (tape-six wiki: "Set-up tests", "Environment ‐ Browsers") and add entries for `tape-six-fast-check` (`/node_modules/tape-six-fast-check/index.js`), `fast-check` (`/node_modules/fast-check/lib/fast-check.js`), and the seven `pure-rand` subpaths fast-check imports (import maps don't apply `exports` tables) — or replace the fast-check + pure-rand entries with one CDN entry: `"fast-check": "https://cdn.jsdelivr.net/npm/fast-check@4/+esm"`. Full map: README § In the browser.
 - Docs: https://github.com/uhop/tape-six-fast-check#readme
