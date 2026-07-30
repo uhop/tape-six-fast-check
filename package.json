@@ -73,10 +73,10 @@
     "tape-six": "^1.16.0"
   },
   "devDependencies": {
-    "@types/node": "^26.1.1",
+    "@types/node": "^26.1.2",
     "fast-check": "^4.9.0",
     "prettier": "^3.9.6",
-    "tape-six": "^1.16.1",
+    "tape-six": "^1.16.2",
     "typescript": "^7.0.2"
   }
 }
